@@ -1127,8 +1127,9 @@ def get_image_class_data_filepath(filename):
     default_dir = "/tmp/image_dataset/"
     if not FLAGS.image_dataset_info_dir:
         FLAGS.image_dataset_info_dir = default_dir + '/'
-    os.makedirs(FLAGS.image_dataset_info_dir)
-    return FLAGS.image_data_info_dir + filename
+    if not os.path.exists(FLAGS.image_dataset_info_dir):
+        os.makedirs(FLAGS.image_dataset_info_dir)
+    return FLAGS.image_dataset_info_dir + filename
 
 def write_test_set_classifications_file(predictions, test_ground_truth,
                                         test_filenames, image_lists):
@@ -1149,9 +1150,9 @@ def store_image_classes(image_lists):
     data_writer = csv.writer(data_file)
     data_writer.writerow(['filename', 'label', 'dataset'])
 
-    for label in image_lists:
+    for label in image_lists.keys():
         for dataset in ['training', 'testing', 'validation']:
-            image_filenames = image_lists[dataset]
+            image_filenames = image_lists[label][dataset]
             for filename in image_filenames:
                 data_writer.writerow([filename, label, dataset])
 
