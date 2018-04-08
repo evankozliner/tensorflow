@@ -119,6 +119,7 @@ import random
 import re
 import sys
 import tarfile
+import csv
 
 import numpy as np
 from six.moves import urllib
@@ -854,7 +855,6 @@ def add_evaluation_step(result_tensor, ground_truth_tensor):
   tf.summary.scalar('accuracy', evaluation_step)
   return evaluation_step, prediction
 
-
 def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
                    decoded_image_tensor, resized_image_tensor,
                    bottleneck_tensor):
@@ -896,6 +896,11 @@ def run_final_eval(sess, model_info, class_count, image_lists, jpeg_data_tensor,
         tf.logging.info('%70s  %s' % (test_filename,
                                       list(image_lists.keys())[predictions[i]]))
 
+  if FLAGS.image_dataset_info:
+      write_test_set_classifications_file(predictions,
+                                          test_ground_truth,
+                                          test_filenames,
+                                          image_lists)
 
 def build_eval_session(model_info, class_count):
   """Builds an restored eval session without train operations for exporting.
@@ -1118,6 +1123,39 @@ def export_model(model_info, class_count, saved_model_dir):
         legacy_init_op=legacy_init_op)
     builder.save()
 
+def get_image_class_data_filepath(filename):
+    default_dir = "/tmp/image_dataset/"
+    if not FLAGS.image_dataset_info_dir:
+        FLAGS.image_dataset_info_dir = default_dir + '/'
+    os.makedirs(FLAGS.image_dataset_info_dir)
+    return FLAGS.image_data_info_dir + filename
+
+def write_test_set_classifications_file(predictions, test_ground_truth,
+                                        test_filenames, image_lists):
+    data_filepath = get_image_class_data_filepath('test_info.csv')
+    data_file = open(data_filepath, 'wb')
+    data_writer = csv.writer(data_file)
+    data_writer.writerow(['filename', 'ground_truth', 'guessed'])
+
+    for i, test_filename in enumerate(test_filenames):
+        predicted_label = list(image_lists.keys())[predictions[i]]
+        data_writer.writerow([test_filename, test_ground_truth[i], predicted_label])
+
+    data_file.close()
+
+def store_image_classes(image_lists):
+    data_filepath = get_image_class_data_filepath('image_info.csv')
+    data_file = open(data_filepath, 'wb')
+    data_writer = csv.writer(data_file)
+    data_writer.writerow(['filename', 'label', 'dataset'])
+
+    for label in image_lists:
+        for dataset in ['training', 'testing', 'validation']:
+            image_filenames = image_lists[dataset]
+            for filename in image_filenames:
+                data_writer.writerow([filename, label, dataset])
+
+    data_file.close()
 
 def main(_):
   # Needed to make sure the logging output is visible.
@@ -1136,6 +1174,10 @@ def main(_):
   # Look at the folder structure, and create lists of all the images.
   image_lists = create_image_lists(FLAGS.image_dir, FLAGS.testing_percentage,
                                    FLAGS.validation_percentage)
+
+  if FLAGS.image_dataset_info:
+      store_image_classes(image_lists)
+
   class_count = len(image_lists.keys())
   if class_count == 0:
     tf.logging.error('No valid folders of images found at ' + FLAGS.image_dir)
@@ -1297,6 +1339,20 @@ def main(_):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--image_dataset_info_dir',
+      type=str,
+      default='',
+      help='Path to store information about which images are in which datasets.'
+  )
+  parser.add_argument(
+      '--image_dataset_info',
+      default=False,
+      help="""\
+      Whether to store metadata associated with training and testing.\
+      """,
+      action='store_true'
+  )
   parser.add_argument(
       '--image_dir',
       type=str,

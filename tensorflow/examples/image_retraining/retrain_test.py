@@ -28,12 +28,12 @@ from tensorflow.python.framework import test_util
 class ImageRetrainingTest(test_util.TensorFlowTestCase):
 
   def dummyImageLists(self):
-    return {'label_one': {'dir': 'somedir', 'training': ['image_one.jpg',
-                                                         'image_two.jpg'],
+    return {'label_one': {'dir': 'somedir',
+                          'training': ['image_one.jpg','image_two.jpg'],
                           'testing': ['image_three.jpg', 'image_four.jpg'],
                           'validation': ['image_five.jpg', 'image_six.jpg']},
-            'label_two': {'dir': 'otherdir', 'training': ['image_one.jpg',
-                                                          'image_two.jpg'],
+            'label_two': {'dir': 'otherdir',
+                          'training': ['image_one.jpg','image_two.jpg'],
                           'testing': ['image_three.jpg', 'image_four.jpg'],
                           'validation': ['image_five.jpg', 'image_six.jpg']}}
 
